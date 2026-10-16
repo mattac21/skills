@@ -17,8 +17,8 @@ of small helpers that callers must sequence correctly, adds cost without hiding 
   written once.
 - If callers must call functions in a set order, or build keys, paths or IDs by hand to use a
   module, that knowledge belongs inside the module.
-- Name operations after what they mean in the domain (`claim_validation(version, sha)`), not
-  after the mechanism (`put_if_absent(key)`).
+- Name operations after what they mean in the domain (`reserve_username(name)`), not after the
+  mechanism (`put_if_absent(key)`).
 
 ### One responsibility per module
 
@@ -103,7 +103,7 @@ relearn its format, and values with different meanings can be swapped without an
 Give the concept one owner that parses it once and gives callers something they can't misuse.
 
 That owner doesn't have to be a type named after the concept. Sometimes the right owner is a value
-type for the concept itself, such as a disclosure repo that knows its date and freeze rule. Other
+type for the concept itself, such as an email address that knows its domain. Other
 times it's an internal type that handles the concept as part of its job, so callers never see the
 concept at all. For example, a git working-directory type that owns the
 `refs/remotes/<remote>/<branch>` layout is better than a ref type that every caller has to build.
@@ -212,8 +212,8 @@ Keep cyclomatic complexity low. Every branch, loop, switch or match case, catch 
 expression, filter clause and short-circuit boolean operand is a decision point. Above about 10 a
 function is too complex to read or test as a unit, whatever its length, so split it before adding
 to it. The usual
-split pulls each decision into a pure function (is this an event we handle? which message is the
-root? what goes in the issue?) and leaves the original as a short sequence of named steps, each with
+split pulls each decision into a pure function (is this input valid? which record wins? what goes
+in the reply?) and leaves the original as a short sequence of named steps, each with
 one failure rule. Entrypoints and handlers are not exempt; they are the functions most likely to grow.
 
 ### Document every function that isn't trivial
