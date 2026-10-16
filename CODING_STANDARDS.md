@@ -154,6 +154,8 @@ wiring belongs in the outermost entrypoint; below that, pass things in.
 
 - Time, randomness and "today" are dependencies. If behavior depends on the date, the date is an
   input.
+- Don't add a `from_env`-style wrapper next to a function so that it can build its own
+  collaborators. The entrypoint builds them and calls the function directly.
 
 ### Read configuration once, at the edge
 
@@ -248,8 +250,35 @@ Decide what the test is checking, then replace only what lies outside that.
   collaborators is fine, even many of them. Pass the fakes in through the interfaces the module
   already depends on, and keep each fake as simple as the test needs. Assert on the module's outcome
   (its return value, or the state it left in the fakes), not on the sequence of calls it made.
+- A fake replaces only the external system, never code you own on the far side of it. If work you
+  own runs inside the external system (a job inside a build service), the fake calls that real code
+  with an injected stage, rather than re-implementing it.
+- Fakes produce what the real system would send, such as webhook payloads and API responses, and
+  the product parses it with its own parser. A fake that hands the product already-parsed objects
+  skips the edge the test should cover.
+- Give a fake a typed configuration API, with one method per operation it stands in for and taking
+  the domain type that operation returns. A single catch-all type, or a raw dict of outcomes keyed
+  by name, lets a test configure answers that can't happen.
 - Fakes are code. Keep each one as small as its actual usage, delete parts nothing exercises, and
   check fakes of external systems against the real thing where possible (contract tests).
+
+### Drive end-to-end tests one event at a time
+
+Don't hide the run behind a helper that pumps every event until the system goes quiet. The test
+delivers each event itself, at the point in the story where it happens. Before each delivery it sets
+up only what the external systems will answer to that event. After it, it asserts the state the
+system left behind. A failure then points at the step that broke. A reader can see which input
+caused which result, and the test reads as the story it checks.
+
+- Each test owns its data and its answers. It creates its own records (the ticket, the repo state)
+  and says what each external call returns. There are no shared defaults that a test silently
+  inherits. Repeating a few lines of setup across tests is better than a helper that hides what the
+  story depends on.
+- Helpers are for queries and assertions named in domain terms (`launched()`, `labels(ticket)`),
+  not for steps of the story.
+- A short comment on each step is welcome here. It says what is being mocked, which event is being
+  processed and what is being ensured, and why. This is the one place comments narrate. The test is
+  the spec, and the why of each step isn't in the code.
 
 ### Every assertion must be able to fail for a real bug
 
@@ -260,7 +289,9 @@ Before keeping an assertion, name the product bug that would make it fail. Delet
   that can't emit what is being checked for;
 - it checks that something exists when the behavior is about what it contains;
 - it pins incidental detail (formatting, internal names, message wording) instead of behavior;
-- it repeats a cheaper test's check at a more expensive level.
+- it repeats a cheaper test's check at a more expensive level;
+- it asserts on the fake's own record of what happened (a transcript of deliveries or calls) rather
+  than on the state the product left in the external system. That is the fake asserting the fake.
 
 Use mutation testing to find assertions that never fail: break the product on purpose and confirm a
 test catches it.
