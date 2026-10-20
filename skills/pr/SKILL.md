@@ -16,7 +16,11 @@ git diff <base>...HEAD --stat
 git diff <base>...HEAD
 ```
 
-`<base>` is the default branch unless the user named another. Stop and say so if you're on the base branch or there are no commits ahead of it. Uncommitted changes are not part of the PR; mention them in one line but don't commit them.
+`<base>` is the default branch unless the user named another. Stop and say so if you're on the base branch.
+
+If there are uncommitted changes (staged, unstaged, or untracked), commit them before going further. Read the diff and split it into multiple commits when it holds separate logical changes (a refactor plus the feature built on it, an unrelated fix that came along); otherwise use one commit. Stage each group by path; when one file holds changes for more than one commit, write a patch with just that commit's hunks and stage it with `git apply --cached` (`git add -p` is interactive and won't work here). Each commit message is a Conventional Commits headline with no body. Skip anything that looks like it shouldn't be committed (secrets, local config, build output) and mention it to the user. Then re-run the log and diff above so the rest of the steps see the new commits.
+
+Stop and say so if there are still no commits ahead of the base.
 
 Read the full diff, and the surrounding code wherever the diff alone doesn't explain why something changed. The description is only as good as your understanding of the change.
 
